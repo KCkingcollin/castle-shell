@@ -1,16 +1,13 @@
 package main
 
 import (
-    "log"
-    "fmt"
-    "os"
-    "bufio"
-    "strings"
-    "path/filepath"
-    "io"
-    // "time"
-
-    "github.com/micmonay/keybd_event"
+	"bufio"
+	"fmt"
+	"io"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
 )
 
 const shortCutsFile = `#
@@ -46,16 +43,33 @@ func main() {
     fmt.Println("Input argument 2 received:", arg2)
 
     // Example: Use the arguments to perform some operation
-    performOperation(arg1, arg2)
+    takeInArgs(arg1, arg2)
+}
+
+func kb(key string) {
+    // Create a new keyboard event instance
+    cmd := exec.Command("wtype", "-k", key)
+    stdout, err := cmd.Output()
+    if err != nil {
+        fmt.Println(err.Error())
+        return
+    }
+    fmt.Println(string(stdout))
+}
+
+func kbCombo(mod, key string) {
+    // Create a new keyboard event instance
+    cmd := exec.Command("wtype", "-M", mod, "-k", key)
+    stdout, err := cmd.Output()
+    if err != nil {
+        fmt.Println(err.Error())
+        return
+    }
+    fmt.Println(string(stdout))
 }
 
 // Example function that uses the arg1 variable
-func performOperation(arg1, arg2 string) {
-    // Create a new keyboard event instance
-    kb, err := keybd_event.NewKeyBonding()
-    if err != nil {
-        log.Fatal(err)
-    }
+func takeInArgs(arg1, arg2 string) {
     // Perform some operation based on the arg1
     switch arg1 {
     case "toggle":
@@ -79,27 +93,31 @@ func performOperation(arg1, arg2 string) {
         switch arg2 {
         case "down":
             fmt.Println("down")
-            kb.SetKeys(keybd_event.VK_DOWN)
-            if err := kb.Launching(); err != nil {
-                log.Fatal(err)
+            kb("down")
+            if err != nil {
+                fmt.Println(err.Error())
+                return
             }
         case "up":
             fmt.Println("up")
-            kb.SetKeys(keybd_event.VK_UP)
-            if err := kb.Launching(); err != nil {
-                log.Fatal(err)
+            kb("up")
+            if err != nil {
+                fmt.Println(err.Error())
+                return
             }
         case "left":
             fmt.Println("left")
-            kb.SetKeys(keybd_event.VK_LEFT)
-            if err := kb.Launching(); err != nil {
-                log.Fatal(err)
+            kb("left")
+            if err != nil {
+                fmt.Println(err.Error())
+                return
             }
         case "right":
             fmt.Println("right")
-            kb.SetKeys(keybd_event.VK_RIGHT)
-            if err := kb.Launching(); err != nil {
-                log.Fatal(err)
+            kb("right")
+            if err != nil {
+                fmt.Println(err.Error())
+                return
             }
         default:
             fmt.Println("Unknown arg2:", arg2)
@@ -114,47 +132,42 @@ func performOperation(arg1, arg2 string) {
 
         switch arg2 {
         case "line":
+            // time.Sleep(100 * time.Millisecond)
             fmt.Println("home shift+end")
-            // Simulate "Home" key press
-            kb.SetKeys(keybd_event.VK_HOME)
-            if err := kb.Launching(); err != nil {
-                log.Fatal(err)
+            kb("home")
+            kbCombo("shift", "end")
+            if err != nil {
+                fmt.Println(err.Error())
+                return
             }
 
-            // Simulate "Shift+End" key combo
-            kb.Clear()
-            kb.SetKeys(keybd_event.VK_END)
-            kb.HasSHIFT(true)
-            if err := kb.Launching(); err != nil {
-                log.Fatal(err)
-            }
         case "down":
             fmt.Println("shift+down")
-            kb.SetKeys(keybd_event.VK_DOWN)
-            kb.HasSHIFT(true)
-            if err := kb.Launching(); err != nil {
-                log.Fatal(err)
+            kbCombo("shift", "down")
+            if err != nil {
+                fmt.Println(err.Error())
+                return
             }
         case "up":
             fmt.Println("shift+up")
-            kb.SetKeys(keybd_event.VK_UP)
-            kb.HasSHIFT(true)
-            if err := kb.Launching(); err != nil {
-                log.Fatal(err)
+            kbCombo("shift", "up")
+            if err != nil {
+                fmt.Println(err.Error())
+                return
             }
         case "left":
             fmt.Println("shift+left")
-            kb.SetKeys(keybd_event.VK_LEFT)
-            kb.HasSHIFT(true)
-            if err := kb.Launching(); err != nil {
-                log.Fatal(err)
+            kbCombo("shift", "left")
+            if err != nil {
+                fmt.Println(err.Error())
+                return
             }
         case "right":
             fmt.Println("shift+right")
-            kb.SetKeys(keybd_event.VK_RIGHT)
-            kb.HasSHIFT(true)
-            if err := kb.Launching(); err != nil {
-                log.Fatal(err)
+            kbCombo("shift", "right")
+            if err != nil {
+                fmt.Println(err.Error())
+                return
             }
         default:
             fmt.Println("Unknown arg2:", arg2)
@@ -165,74 +178,6 @@ func performOperation(arg1, arg2 string) {
     switch arg2 {
     default:
     }
-}
-
-func copyFile(src string, dst string) error {
-    // Open the source file
-    sourceFile, err := os.Open(src)
-    if err != nil {
-        return fmt.Errorf("failed to open source file: %w", err)
-    }
-    defer sourceFile.Close()
-
-    // Create the destination file
-    destinationFile, err := os.Create(dst)
-    if err != nil {
-        return fmt.Errorf("failed to create destination file: %w", err)
-    }
-    defer destinationFile.Close()
-
-    // Copy the contents from the source file to the destination file
-    _, err = io.Copy(destinationFile, sourceFile)
-    if err != nil {
-        return fmt.Errorf("failed to copy file contents: %w", err)
-    }
-
-    // Flush the writer buffer if applicable
-    err = destinationFile.Sync()
-    if err != nil {
-        return fmt.Errorf("failed to flush to destination file: %w", err)
-    }
-
-    return nil
-}
-
-func ensureFileExists(filename string) error {
-    // Check if the file exists
-    _, err := os.Stat(filename)
-    if os.IsNotExist(err) {
-        // File does not exist, create it
-        file, err := os.Create(filename)
-        if err != nil {
-            return fmt.Errorf("failed to create file: %w", err)
-        }
-        defer file.Close()
-
-        fmt.Println("File created successfully.")
-    } else if err != nil {
-        return fmt.Errorf("failed to check if file exists: %w", err)
-    } else {
-        fmt.Println("File already exists.")
-    }
-
-    return nil
-}
-
-func appendTextToFile(filename, text string) error {
-    // Open the file with the appropriate flags to create if not exists and append
-    file, err := os.OpenFile(filename, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
-    if err != nil {
-        return fmt.Errorf("failed to open file: %w", err)
-    }
-    defer file.Close()
-
-    // Write the text to the file
-    _, err = file.WriteString(text)
-    if err != nil {
-        return fmt.Errorf("failed to write to file: %w", err)
-    }
-
-    return nil
 }
 
 func toggleMotions() {
@@ -336,3 +281,72 @@ func toggleMotions() {
 
     fmt.Println("File updated successfully.")
 }
+
+func ensureFileExists(filename string) error {
+    // Check if the file exists
+    _, err := os.Stat(filename)
+    if os.IsNotExist(err) {
+        // File does not exist, create it
+        file, err := os.Create(filename)
+        if err != nil {
+            return fmt.Errorf("failed to create file: %w", err)
+        }
+        defer file.Close()
+
+        fmt.Println("File created successfully.")
+    } else if err != nil {
+        return fmt.Errorf("failed to check if file exists: %w", err)
+    } else {
+        fmt.Println("File already exists.")
+    }
+
+    return nil
+}
+
+func copyFile(src string, dst string) error {
+    // Open the source file
+    sourceFile, err := os.Open(src)
+    if err != nil {
+        return fmt.Errorf("failed to open source file: %w", err)
+    }
+    defer sourceFile.Close()
+
+    // Create the destination file
+    destinationFile, err := os.Create(dst)
+    if err != nil {
+        return fmt.Errorf("failed to create destination file: %w", err)
+    }
+    defer destinationFile.Close()
+
+    // Copy the contents from the source file to the destination file
+    _, err = io.Copy(destinationFile, sourceFile)
+    if err != nil {
+        return fmt.Errorf("failed to copy file contents: %w", err)
+    }
+
+    // Flush the writer buffer if applicable
+    err = destinationFile.Sync()
+    if err != nil {
+        return fmt.Errorf("failed to flush to destination file: %w", err)
+    }
+
+    return nil
+}
+
+func appendTextToFile(filename, text string) error {
+    // Open the file with the appropriate flags to create if not exists and append
+    file, err := os.OpenFile(filename, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+    if err != nil {
+        return fmt.Errorf("failed to open file: %w", err)
+    }
+    defer file.Close()
+
+    // Write the text to the file
+    _, err = file.WriteString(text)
+    if err != nil {
+        return fmt.Errorf("failed to write to file: %w", err)
+    }
+
+    return nil
+}
+
